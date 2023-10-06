@@ -26,7 +26,6 @@ Source0: %{name}_%{version}.orig.tar.gz
 
 Requires: python311-zypp-plugin
 
-
 BuildArch: %{_arch}
 
 %description
@@ -44,7 +43,7 @@ popd
 install -d %{buildroot}/usr/libexec
 install -p -m 0755 cmd/ar-token/ar-token %{buildroot}/usr/libexec/
 install -d %{buildroot}/lib/zypp/plugins/urlresolver
-install -p -m 0755 zypper/artifact-registry.py %{buildroot}/lib/zypp/plugins/urlresolver/
+install -p -m 0755 zypper/artifact-registry.py %{buildroot}/lib/zypp/plugins/urlresolver/artifact-registry
 
 
 %files
