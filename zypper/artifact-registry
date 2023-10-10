@@ -1,0 +1,66 @@
+#!/usr/bin/env python3
+#
+#  Copyright 2023 Hewlett Packard Enterprise Development LP
+#
+#  Licensed under the Apache License, Version 2.0 (the "License");
+#  you may not use this file except in compliance with the License.
+#  You may obtain a copy of the License at
+#
+#      http://www.apache.org/licenses/LICENSE-2.0
+#
+#  Unless required by applicable law or agreed to in writing, software
+#  distributed under the License is distributed on an "AS IS" BASIS,
+#  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+#  See the License for the specific language governing permissions and
+#  limitations under the License.
+
+from subprocess import CalledProcessError, PIPE, Popen
+from traceback import format_exc
+
+# See https://github.com/openSUSE/zypp-plugin
+from zypp_plugin import Plugin
+
+
+token_cmd = '/usr/libexec/ar-token'
+
+
+def _get_token(service_account_json=None, service_account_email=None):
+    args = [token_cmd]
+    # JSON has priority over email.
+    if service_account_json:
+        args.append('--service_account_json=' + service_account_json)
+    elif service_account_email:
+        args.append('--service_account_email=' + service_account_email)
+    with Popen(args, stdout=PIPE, stderr=PIPE) as process:
+        try:
+            stdout, stderr = process.communicate()
+        except:
+            process.kill()
+            raise
+        retcode = process.poll()
+        if retcode:
+            raise CalledProcessError(retcode, args, output=stderr.decode('utf-8'))
+    return stdout.decode('utf-8')
+
+
+class ArtifactRegistryPlugin(Plugin):
+
+    URL = 'https://{location}-yum.pkg.dev/projects/{project}/{repository}'
+
+    def RESOLVEURL(self, headers, data):
+        try:
+            url = self.URL.format(**headers)
+            token = _get_token(
+                service_account_json=headers.get('service_account_json'),
+                service_account_email=headers.get('service_account_email'),
+            )
+            self.answer('RESOLVEDURL', {'Authorization': f'Bearer {token}'}, url)
+        except CalledProcessError as e:
+            lines = (str(e), e.output, getattr(e, 'stderr', None))
+            self.error(body='\n'.join(filter(None, lines)).strip())
+        except:
+            self.error(body=format_exc())
+
+
+plugin = ArtifactRegistryPlugin()
+plugin.main()
