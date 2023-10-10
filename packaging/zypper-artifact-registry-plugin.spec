@@ -23,10 +23,12 @@ Summary: Zypper plugin for Artifact Registry
 License: ASL 2.0
 Url: https://cloud.google.com/artifact-registry
 Source0: %{name}_%{version}.orig.tar.gz
-
-Requires: python311-zypp-plugin
-
 BuildArch: %{_arch}
+
+BuildRequires: go >= 1.17
+BuildRequires: golang-packaging
+
+Requires: python3-zypp-plugin
 
 %description
 Contains a Zypper plugin for authenticated access to Artifact Registry repositories.
@@ -36,18 +38,17 @@ Contains a Zypper plugin for authenticated access to Artifact Registry repositor
 
 %build
 pushd cmd/ar-token
-GOPATH=%{_gopath} CGO_ENABLED=0 %{_go} build -ldflags="-s -w" -mod=readonly
+CGO_ENABLED=0 go build -ldflags="-s -w" -mod=readonly -buildvcs=false
 popd
 
 %install
 install -d %{buildroot}/usr/libexec
 install -p -m 0755 cmd/ar-token/ar-token %{buildroot}/usr/libexec/
-install -d %{buildroot}/lib/zypp/plugins/urlresolver
-install -p -m 0755 zypper/artifact-registry.py %{buildroot}/lib/zypp/plugins/urlresolver/artifact-registry
-
+install -d %{buildroot}/usr/lib/zypp/plugins/urlresolver
+install -p -m 0755 zypper/artifact-registry %{buildroot}/usr/lib/zypp/plugins/urlresolver/artifact-registry
 
 %files
-%defattr(755,root,root,-)
+%defattr(0755,root,root,-)
 /usr/libexec/ar-token
-/lib/zypp/plugins/urlresolver/artifact-registry.py
-%doc LICENSE
+/usr/lib/zypp/plugins/urlresolver/artifact-registry
+%license LICENSE
